@@ -4,6 +4,8 @@ import cors from 'cors';
 
 import { metricsRegistry } from './metrics/metrics';
 import morgan from 'morgan'
+import authRoutes from "./routes/auth.routes";
+import userRoutes from './routes/user.routes';  
 
 // Create an instance of an Express application
 const app = express();
@@ -17,7 +19,6 @@ app.use(bodyParser.urlencoded({ extended: true })); // Parse URL-encoded bodies
 app.use(morgan("dev"));
 
 
-
 // Basic Route
 app.get('/', (req: Request, res: Response) => {
   res.status(200).send('Welcome to the auth service!');
@@ -25,8 +26,9 @@ app.get('/', (req: Request, res: Response) => {
 
 
 
-// all
-
+// all routes for auth services
+app.use('/auth', authRoutes);
+app.use('/user', userRoutes);
 
 
 
