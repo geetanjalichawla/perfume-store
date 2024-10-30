@@ -2,6 +2,8 @@
 
 import { Prisma } from "@prisma/client";
 import { prisma } from "../config/db.config";
+import { IGetAllUsersQueryInput } from "../types/user.type";
+import { getAllUsersQueryInputSchema } from "../validation/user.schema";
 
 export const getUserById = async (id: number) => {
   const user = await prisma.user.findUnique({
@@ -27,14 +29,51 @@ export const getUserByEmail = async (email: string) => {
   return user;
 }
 
-export const getAllUsers = async (page: number, limit: number, filter: Prisma.UserWhereInput) => {
+export const getAllUsers = async (query:IGetAllUsersQueryInput ) => {
+  const {page, limit, search, sortBy, sortOrder, role} = getAllUsersQueryInputSchema.parse(query);
+
+  let filter: Prisma.UserWhereInput = {};
+
+  if(search) {
+    filter = {
+      OR: [
+        {
+          username: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+        {
+          email: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+      ],
+    };
+  }
+
+  if(role) {
+    filter = {
+      ...filter,
+      role
+    }
+  }
+
+  let orderBy: Prisma.UserOrderByWithRelationInput = {
+    createdAt: 'desc'
+  };
+  if(sortBy && sortOrder) {
+    orderBy = {
+      [sortBy]: sortOrder
+    }
+  }
+
   const users = await prisma.user.findMany({
     skip: (page - 1) * limit,
     take: limit,
     where: filter,
-    orderBy: {
-      createdAt: 'desc',
-    },
+    orderBy:orderBy,
   });
   return users;
 };
