@@ -1,0 +1,41 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id          Int       @id @default(autoincrement())
+  username    String    @unique
+  email       String    @unique
+  password    String    // Consider storing a hashed password
+  role        UserRole  @default(USER) // Using an enum for better role management
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  tokens       Token[]
+}
+
+
+
+model Token {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  token      String   @unique
+  ipAddress  String?
+  deviceInfo String?
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+
+  @@index([userId])
+}
+
+
+// Enum for user roles
+enum UserRole {
+  USER
+  ADMIN
+}

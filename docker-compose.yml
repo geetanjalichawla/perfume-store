@@ -1,0 +1,150 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "3000:3000"
+    depends_on:
+      - order-service
+      - inventory-service
+      - payment-service
+      - notification-service
+      - auth-service
+      - kafka
+      - zookeeper
+      - db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    networks:
+      - app_network
+
+  order-service:
+    build: ./order-service
+    ports:
+      - "3001:3001"
+    depends_on:
+      - kafka
+      - zookeeper
+      - db
+    networks:
+      - app_network
+
+
+  inventory-service:
+    build: ./inventory-service
+    ports:
+      - "3002:3002"
+    depends_on:
+      - kafka
+      - zookeeper
+      - db
+    networks:
+      - app_network
+
+  payment-service:
+    build: ./payment-service
+    ports:
+      - "3003:3003"
+    depends_on:
+      - kafka
+      - zookeeper
+      - db
+    networks:
+      - app_network
+
+
+  notification-service:
+    build: ./notification-service
+    ports:
+      - "3004:3004"
+    depends_on:
+      - kafka
+      - zookeeper
+      - db
+    networks:
+      - app_network
+
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "3005:3005"
+    depends_on:
+      - kafka
+      - zookeeper
+      - db
+    networks:
+      - app_network
+
+  kafka:
+    image: wurstmeister/kafka:latest
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks:
+      - app_network
+
+
+  zookeeper:
+    image: wurstmeister/zookeeper:latest
+    ports:
+      - "2181:2181"
+    networks:
+      - app_network
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - monitoring
+      - app_network
+      
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3006:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring
+      - app_network
+
+
+  db:
+    image: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge  # Default network type for Docker, allows full connectivity within the network
+  monitoring:
+    driver: bridge  # Separate network for monitoring tools, isolated from app services unless needed
+
+
+volumes:
+  grafana-storage:
+  kafka-data:
+  postgres-data:
